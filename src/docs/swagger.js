@@ -20,6 +20,10 @@ const options = {
         name: "Installation",
         description: "Installation initiale de FactoryFlow",
       },
+      {
+        name: "authentification",
+        descripiton: "Connexion et gestion de l'authentification JWT"
+      }
     ],
     components: {
       securitySchemes: {
