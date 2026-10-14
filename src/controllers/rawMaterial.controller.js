@@ -2,14 +2,13 @@ const rawMaterialService = require("../services/rawMaterial.service");
 
 const getAll = async (req, res, next) => {
   try {
-    const result = await rawMaterialService.getAll({
-      page: req.query.page,
-      limit: req.query.limit,
-      search: req.query.search || "",
-    });
+    const materials = await rawMaterialService.getAll();
 
-    res.status(200).json(result);
-  } catch (error) {
+    res.status(200).json({
+      count: materials.length,
+      data: materials,
+    });
+  } catch (error) {           
     next(error);
   }
 };
