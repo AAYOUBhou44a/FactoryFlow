@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const userRepository = require("../repositories/user.repository");
 
-const protect = async (req, res, next) => {
+const authenticate = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -40,6 +40,6 @@ const authorize = (...roles) => (req, res, next) => {
 };
 
 module.exports = {
-    protect,
+    authenticate,
     authorize
 };
