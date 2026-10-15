@@ -1,5 +1,4 @@
 services:
-
   backend:
     build: .
     container_name: factoryflow-backend
@@ -21,12 +20,14 @@ services:
     image: mongo:8
     container_name: factoryflow-mongo
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-    ports:
-      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\""]
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -46,7 +47,7 @@ services:
           try {
             rs.status();
             print("Replica set already initialized");
-          } catch (e) {
+          } catch (error) {
             rs.initiate({
               _id: "rs0",
               members: [
