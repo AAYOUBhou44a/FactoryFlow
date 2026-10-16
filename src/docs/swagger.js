@@ -1,3 +1,4 @@
+const path = require("node:path");
 const swaggerJsdoc = require("swagger-jsdoc");
 
 const options = {
@@ -22,7 +23,7 @@ const options = {
       },
       {
         name: "authentification",
-        descripiton: "Connexion et gestion de l'authentification JWT"
+        description: "Connexion et gestion de l'authentification JWT",
       }
     ],
     components: {
@@ -36,7 +37,7 @@ const options = {
     },
   },
 
-  apis: ["./src/routes/*.js"],
+  apis: [path.resolve(__dirname, "../routes/*.js")],
 };
 
 module.exports = swaggerJsdoc(options);

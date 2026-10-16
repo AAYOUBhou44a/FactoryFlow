@@ -189,7 +189,7 @@ router.delete(
   "/:id",
   authenticate,
   authorize("ADMIN"),
-  controller.delete
+  controller.remove
 );
 
 /**

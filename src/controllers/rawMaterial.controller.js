@@ -18,7 +18,7 @@ const getById = async (req, res, next) => {
     const material = await rawMaterialService.getById(req.params.id);
 
     res.status(200).json({ data: material });
-  } catch (error) {
+  } catch (error) {                      
     next(error);
   }
 };
@@ -64,11 +64,38 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = 
-{
+const getLowStock = async (req, res, next) => {
+  try {
+    const materials = await rawMaterialService.getLowStock();
+    res.status(200).json(materials);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addStock = async (req, res, next) => {
+  try {
+    const material = await rawMaterialService.addStock(
+      req.params.id,
+      req.body.quantity,
+      req.user._id
+    );
+
+    res.status(200).json({
+      message: "Entrée de stock enregistrée.",
+      data: material,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
   getAll,
   getById,
   create,
   update,
   remove,
-}
+  getLowStock,
+  addStock,
+};

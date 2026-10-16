@@ -1,6 +1,13 @@
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose");
 const installationRepository = require("../repositories/installation.repository");
 const userRepository = require("../repositories/user.repository");
+
+const createError = (message, statusCode) => {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    return error;
+};
 
 const getStatus = async () => {
     const installation = await installationRepository.find();
@@ -10,50 +17,67 @@ const getStatus = async () => {
     };
 };
 
-const install = async ({ name, email, password }) => {
-    if (!name || !email || !password) {
-        const error = new Error("Nom, email et mot de passe sont requis.");
-        error.statusCode = 400;
-        throw error;
+const install = async (data = {}) => {
+    const { name, email, password } = data || {};
+
+    if (
+        typeof name !== "string" ||
+        !name.trim() ||
+        typeof email !== "string" ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+        typeof password !== "string" ||
+        !password
+    ) {
+        throw createError("Nom, email valide et mot de passe sont requis.", 400);
     }
 
-    const existingInstallation = await installationRepository.find();
-    if (existingInstallation) {
-        const error = new Error("L'application est déjà installée.");
-        error.statusCode = 409;
-        throw error;
-    }
-
-    const existingUser = await userRepository.findByEmail(email);
-    if (existingUser) {
-        const error = new Error("Un compte avec cet email existe déjà.");
-        error.statusCode = 409;
-        throw error;
-    }
-
+    const normalizedEmail = email.trim().toLowerCase();
     const hashedPassword = await bcrypt.hash(password, 10);
+    const session = await mongoose.startSession();
+    let result;
 
-    const admin = await userRepository.create({
-        name,
-        email,
-        password: hashedPassword,
-        role: "ADMIN"
-    });
+    try {
+        await session.withTransaction(async () => {
+            if (await installationRepository.find(session)) {
+                throw createError("L'application est déjà installée.", 409);
+            }
 
-    const installation = await installationRepository.create({
-        admin: admin._id
-    });
+            if (await userRepository.findByEmail(normalizedEmail, session)) {
+                throw createError("Un compte avec cet email existe déjà.", 409);
+            }
 
-    return {
-        installed: true,
-        installation,
-        admin: {
-            id: admin._id,
-            name: admin.name,
-            email: admin.email,
-            role: admin.role
+            const admin = await userRepository.create({
+                name: name.trim(),
+                email: normalizedEmail,
+                password: hashedPassword,
+                role: "ADMIN"
+            }, session);
+
+            const installation = await installationRepository.create({
+                admin: admin._id
+            }, session);
+
+            result = {
+                installed: true,
+                installation,
+                admin: {
+                    id: admin._id,
+                    name: admin.name,
+                    email: admin.email,
+                    role: admin.role
+                }
+            };
+        });
+
+        return result;
+    } catch (error) {
+        if (error.code === 11000) {
+            throw createError("L'application est déjà installée ou l'email est déjà utilisé.", 409);
         }
-    };
+        throw error;
+    } finally {
+        await session.endSession();
+    }
 };
 
 module.exports = {

@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const userRepository = require('../src/repositories/user.repository');
 const installationRepository = require('../src/repositories/installation.repository');
 const installationService = require('../src/services/installation.service');
@@ -19,9 +20,20 @@ jest.mock('bcryptjs', () => ({
   compare: jest.fn()
 }));
 
+jest.mock('mongoose', () => ({
+  startSession: jest.fn()
+}));
+
 describe('installation service', () => {
+  let session;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    session = {
+      withTransaction: jest.fn(async (callback) => callback()),
+      endSession: jest.fn()
+    };
+    mongoose.startSession.mockResolvedValue(session);
   });
 
   it('returns installed false when no installation exists', async () => {
@@ -62,12 +74,16 @@ describe('installation service', () => {
         email: 'admin@example.com',
         role: 'ADMIN',
         password: 'hashed-password'
-      })
+      }),
+      session
     );
+    expect(session.withTransaction).toHaveBeenCalledTimes(1);
+    expect(session.endSession).toHaveBeenCalledTimes(1);
     expect(installationRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         admin: 'user-id'
-      })
+      }),
+      session
     );
     expect(result).toMatchObject({ installed: true, admin: { email: 'admin@example.com' } });
   });

@@ -1,13 +1,20 @@
 const User = require("../models/User");
 
-const create = async (userData) => {
-    return await User.create(userData);
+const create = async (userData, session = null) => {
+    const user = new User(userData);
+    return session ? user.save({ session }) : user.save();
 };
 
-const findByEmail = async (email) => {
-    return await User.findOne({
+const findByEmail = async (email, session = null) => {
+    let query = User.findOne({
         email: email.trim().toLowerCase()
     });
+
+    if (session) {
+        query = query.session(session);
+    }
+
+    return query.exec();
 };
 
 const findById = async (id) => {

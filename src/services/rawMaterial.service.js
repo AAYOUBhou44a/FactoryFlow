@@ -1,14 +1,20 @@
 const mongoose = require("mongoose");
+const productRepository = require("../repositories/product.repository");
 const rawMaterialRepository = require("../repositories/rawMaterial.repository");
+const stockMovementRepository = require("../repositories/stockMovement.repository");
+
+const createError = (message, statusCode) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
 
 const validateId = (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw createError("Identifiant invalide.", 400);
   }
 };
-const getAll = async ()=>{
-    return await rawMaterialRepository.findAll();
-}
+const getAll = async () => rawMaterialRepository.findAll({}, { limit: 0 });
 
 const getById = async (id) => {
   validateId(id);
@@ -95,6 +101,56 @@ const update = async (id, data) => {
   }
 };
 
+const addStock = async (id, quantity, performedBy) => {
+  validateId(id);
+
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw createError("La quantité doit être supérieure à zéro.", 400);
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(performedBy)) {
+    throw createError("Identifiant utilisateur invalide.", 400);
+  }
+
+  const session = await mongoose.startSession();
+  let updatedMaterial;
+
+  try {
+    await session.withTransaction(async () => {
+      const material = await rawMaterialRepository.findById(id, session);
+
+      if (!material) {
+        throw createError("Matière première introuvable.", 404);
+      }
+
+      const stockBefore = material.quantity;
+      const stockAfter = stockBefore + quantity;
+
+      updatedMaterial = await rawMaterialRepository.updateById(
+        id,
+        { quantity: stockAfter },
+        session
+      );
+
+      await stockMovementRepository.create(
+        {
+          rawMaterial: id,
+          type: "ENTRY",
+          quantity,
+          stockBefore,
+          stockAfter,
+          performedBy,
+        },
+        session
+      );
+    });
+
+    return updatedMaterial;
+  } finally {
+    await session.endSession();
+  }
+};
+
 const remove = async (id) => {
   validateId(id);
 
@@ -124,4 +180,16 @@ const remove = async (id) => {
   }
 
   return rawMaterialRepository.deleteById(id);
+};
+
+const getLowStock = async () => rawMaterialRepository.findBelowThreshold();
+
+module.exports = {
+  getAll,
+  getLowStock,
+  addStock,
+  getById,
+  create,
+  update,
+  remove,
 };

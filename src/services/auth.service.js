@@ -2,8 +2,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const userRepository = require("../repositories/user.repository");
 
-const login = async ({ email, password }) => {
-    if (!email || !password) {
+const login = async ({ email, password } = {}) => {
+    if (typeof email !== "string" || !email.trim() || typeof password !== "string" || !password) {
         const error = new Error("Email et mot de passe requis.");
         error.statusCode = 400;
         throw error;

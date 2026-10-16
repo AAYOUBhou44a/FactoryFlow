@@ -1,21 +1,18 @@
 const validate = (schema) => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
-      abortEarly: false,
-      convert: true,
-    });
+    const result = schema.safeParse(req.body);
 
-    if (error) {
+    if (!result.success) {
       return res.status(400).json({
         message: "Données invalides.",
-        errors: error.details.map((detail) => ({
-          field: detail.path.join("."),
-          message: detail.message,
+        errors: result.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
         })),
       });
     }
 
-    req.body = value;
+    req.body = result.data;
     next();
   };
 };

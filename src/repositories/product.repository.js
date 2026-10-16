@@ -34,6 +34,9 @@ const deleteById = async (id) => {
   return Product.findByIdAndDelete(id);
 };
 
+const isMaterialUsed = async (materialId) =>
+  Boolean(await Product.exists({ "composition.material": materialId }));
+
 const count = async (filter = {}) => {
   return Product.countDocuments(filter);
 };
@@ -46,4 +49,5 @@ module.exports = {
   updateById,
   deleteById,
   count,
+  isMaterialUsed,
 };
